@@ -1,0 +1,28 @@
+{
+  "package_name": "ai-sop-member-skill",
+  "package_version": "2.0.0",
+  "release_status": "stable",
+  "build_id": "member-dev-cli-2.0.0-v1",
+  "skill_name": "ai-sop-member",
+  "skill_path": "ai-sop-member",
+  "protocol_version": "1.0",
+  "project_schema_version": "2.0",
+  "source_sop": "AI协同软件开发统一SOP_V2.0.md",
+  "integrated_feature_source": "D/E development, code review, release, incident, and Git authority content contract",
+  "documentation": "USAGE.zh-CN.md",
+  "distribution_role": "member-only",
+  "runtime": {
+    "python_minimum": "3.10",
+    "external_python_dependencies": [],
+    "coordination_store": "member evidence branch plus task-scoped code branch in a shared private Git repository",
+    "predevelopment_cli": "ai-sop-member/scripts/member_cli.py (V1.8.1 compatibility)",
+    "development_cli": "ai-sop-member/scripts/development_cli.py (V2.0.0)",
+    "automation_scope": "A-C compatibility plus deterministic D-E assignment, checks, commit-bound owner confirmation, scope validation, and submission"
+  },
+  "companion_package": {
+    "name": "ai-sop-coordinator-skill",
+    "minimum_version": "2.0.0",
+    "installation_required_on_member": false,
+    "task_contract_source": "matching coordinator-managed Git repository"
+  }
+}

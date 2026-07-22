@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI SOP Member"
+  short_description: "Execute scoped SOP work from requirements through delivery"
+  default_prompt: "Use $ai-sop-member V2.0 rules to classify the assignment stage, preserve exact acceptance and human authority, and for development work plan tests first, modify only the registered code branch, obtain commit-bound confirmation, and stop at review or production gates."

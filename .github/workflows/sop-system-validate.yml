@@ -1,0 +1,57 @@
+name: SOP system validation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Validate bootstrap boundary and runtime lock
+        run: python3 .github/scripts/sop_system_validate.py
+
+      - name: Compile trusted runtime and extensions
+        run: |
+          python3 -m py_compile \
+            .github/scripts/sop_coordinator_cli.py \
+            .github/scripts/sop_member_cli.py \
+            .github/scripts/sop_member_cli_1_8_0.py \
+            .github/scripts/sop_development_cli.py \
+            .github/scripts/sop_member_development_cli.py \
+            .github/scripts/sop_project_guard.py \
+            .github/scripts/sop_system_validate.py \
+            .github/scripts/sop_dashboard_action.py \
+            .github/scripts/sop_dingtalk_notifier.py \
+            .github/scripts/sop_issue_notifier.py \
+            .github/scripts/sop_readme_dashboard.py \
+            .github/scripts/sop_skill_cleanup.py
+
+      - name: Run Coordinator V2.0 release tests
+        run: python3 -m unittest discover -s ai-sop-coordinator-skill-v2.0.0/tests -p 'test_*.py'
+
+      - name: Run Member V2.0 release tests
+        run: python3 -m unittest discover -s ai-sop-member-skill-v2.0.0/tests -p 'test_*.py'
+
+      - name: Run Member 1.8.1 compatibility tests
+        run: python3 -m unittest discover -s ai-sop-member-skill-v1.8.1/tests -p 'test_*.py'
+
+      - name: Run repository extension tests
+        run: |
+          python3 .github/scripts/test_sop_issue_notifier.py
+          python3 .github/scripts/test_sop_dingtalk_notifier.py
+          python3 -m unittest discover -s .github/tests -p 'test_*.py'
+
+      - name: Confirm tests did not modify tracked files
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"

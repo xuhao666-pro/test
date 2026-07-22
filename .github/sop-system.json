@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "lifecycle": "bootstrap",
+  "project_initialized": false,
+  "project_data_included": false,
+  "capabilities": {
+    "predevelopment_ac": true,
+    "development_de": false,
+    "dashboard": false,
+    "dashboard_actions": false,
+    "github_issue_notifications": false,
+    "dingtalk_notifications": false,
+    "remote_feedback": false,
+    "automatic_skill_cleanup": false
+  },
+  "activation_rule": "Initialize a new project from explicit human input, register members, validate configuration, then activate project workflows in one reviewed commit.",
+  "updated_at": "2026-07-22"
+}

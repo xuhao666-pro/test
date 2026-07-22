@@ -1,0 +1,34 @@
+{
+  "package_name": "ai-sop-member-skill",
+  "package_version": "1.8.1",
+  "validated_at": "2026-07-20",
+  "results": [
+    {"check": "skill-creator quick_validate with UTF-8 mode", "status": "passed"},
+    {"check": "Member CLI Python syntax compilation and command discovery", "status": "passed"},
+    {"check": "Existing assignment-snapshot and authorized-baseline Git validation remains preserved", "status": "passed"},
+    {"check": "V1.7.5 task contract hash protects human_collaboration and submission_confirmation independently", "status": "passed"},
+    {"check": "human_collaboration none disables Grill but still requires human-submission-confirmation.yaml", "status": "passed"},
+    {"check": "init creates a not-prepared confirmation record and manifest summary", "status": "passed"},
+    {"check": "Validation is blocked before preparation and while awaiting the registered human owner", "status": "passed"},
+    {"check": "Explicit owner confirmation binds the current normalized body hash and personal stance", "status": "passed"},
+    {"check": "confirm, oppose, question, and reserve remain valid personal positions without Gate effect", "status": "passed"},
+    {"check": "A material main-output change after confirmation blocks submit as stale", "status": "passed"},
+    {"check": "Confirmation manifest summary contains the exact confirmation-record hash", "status": "passed"},
+    {"check": "Adaptive Grill evidence remains separate from final submission confirmation", "status": "passed"},
+    {"check": "Pre-1.7.5 assignments remain compatible and explicit legacy-not-required", "status": "passed"},
+    {"check": "V1.8.1 assignments require the exact task-bound Member version and build_id before acceptance or init", "status": "passed"},
+    {"check": "Required AI dialogue collaboration cannot be skipped and has gate_effect none", "status": "passed"},
+    {"check": "accept-assignment creates an exact assignment, member, branch, hash, version, and build-bound receipt", "status": "passed"},
+    {"check": "V1.8.1 init is blocked until the acceptance receipt is valid", "status": "passed"},
+    {"check": "Task startup documentation compares the exact required Skill release before task content and emits a verified remediation command on mismatch", "status": "passed"}
+  ],
+  "known_boundaries": [
+    "human_collaboration none only disables Grill; it never waives final submission confirmation for V1.7.5 tasks.",
+    "The registered human owner must explicitly supply the personal stance and confirm the displayed current body hash; AI cannot infer, invent, or sign this response.",
+    "The local explicit-human-owner record prevents contract and hash mismatches but is not cryptographic identity proof.",
+    "Member submission confirmation authorizes only the individual contribution submission and has gate_effect none.",
+    "Pre-1.7.5 tasks remain legacy-not-required and cannot be retroactively signed.",
+    "Clone, fetch, pull, notification delivery, and AI dialogue do not constitute assignment acceptance; only the explicit pushed receipt can be projected as accepted.",
+    "Version preflight only reminds and blocks; it never silently installs, upgrades, downgrades, or globally overwrites the local Skill."
+  ]
+}

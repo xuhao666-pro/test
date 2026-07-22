@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "reference_roots": [
+    "sop",
+    ".github/sop-runtime-lock.json"
+  ],
+  "retain_latest_stable": {
+    "coordinator": 2,
+    "member": 3
+  },
+  "pinned_packages": [
+    "ai-sop-coordinator-skill-v2.0.0",
+    "ai-sop-coordinator-skill-v1.8.4",
+    "ai-sop-member-skill-v2.0.0",
+    "ai-sop-member-skill-v1.8.1",
+    "ai-sop-member-skill-v1.8.0"
+  ]
+}

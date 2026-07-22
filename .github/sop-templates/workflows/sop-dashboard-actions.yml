@@ -1,0 +1,269 @@
+name: SOP 协调操作台
+
+on:
+  workflow_dispatch:
+    inputs:
+      dashboard_action:
+        description: 选择低风险操作
+        required: true
+        type: choice
+        options:
+          - refresh-state
+          - notification-test
+          - task-reminder
+      assignment_id:
+        description: task-reminder 必填；使用精确 assignment ID
+        required: false
+        type: string
+      reminder_detail:
+        description: 可选提醒说明；只用于通知，不进入 SOP 事实链
+        required: false
+        type: string
+      base_main_sha:
+        description: 可选；留空时绑定本次手工运行事件的 main SHA
+        required: false
+        type: string
+      base_revision:
+        description: 可选；留空时读取事件 SHA 中的 project-state revision
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sop-dashboard-actions
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      active: ${{ steps.guard.outputs.active }}
+    steps:
+      - name: Checkout trusted main for lifecycle guard
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Check dashboard-action capability
+        id: guard
+        shell: bash
+        run: |
+          python .github/scripts/sop_project_guard.py \
+            --capability dashboard_actions \
+            --github-output "$GITHUB_OUTPUT"
+
+  reject-unsafe-invocation:
+    if: ${{ github.ref != 'refs/heads/main' || github.run_attempt != 1 }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse non-main or rerun execution
+        run: |
+          echo "Dashboard actions require a fresh workflow_dispatch on main." >&2
+          exit 1
+
+  authorize:
+    needs: preflight
+    if: ${{ needs.preflight.outputs.active == 'true' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      action: ${{ steps.authorize.outputs.action }}
+      current_main_sha: ${{ steps.authorize.outputs.current_main_sha }}
+      current_revision: ${{ steps.authorize.outputs.current_revision }}
+      assignment_id: ${{ steps.authorize.outputs.assignment_id }}
+      reminder_detail: ${{ steps.authorize.outputs.reminder_detail }}
+    steps:
+      - name: Checkout trusted main
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch registered refs and verify current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin --prune
+          current_main_sha="$(git rev-parse HEAD)"
+          remote_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$current_main_sha" != "$remote_main_sha" ]]; then
+            echo "Checked-out main is stale; start a new dashboard run." >&2
+            exit 1
+          fi
+
+      - name: Revalidate dashboard-action capability
+        id: final_guard
+        shell: bash
+        run: |
+          python .github/scripts/sop_project_guard.py \
+            --capability dashboard_actions \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Authorize action and freeze execution snapshot
+        id: authorize
+        if: ${{ steps.final_guard.outputs.active == 'true' }}
+        env:
+          DASHBOARD_ACTION: ${{ inputs.dashboard_action }}
+          ASSIGNMENT_ID: ${{ inputs.assignment_id }}
+          REMINDER_DETAIL: ${{ inputs.reminder_detail }}
+          REQUESTED_MAIN_SHA: ${{ inputs.base_main_sha }}
+          REQUESTED_REVISION: ${{ inputs.base_revision }}
+          EVENT_MAIN_SHA: ${{ github.sha }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_main_sha="$(git rev-parse HEAD)"
+          current_revision="$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          state = json.loads(Path("sop/project-state.yaml").read_text(encoding="utf-8"))
+          print(state["submission_tracking"]["revision"])
+          PY
+          )"
+          event_revision="$(git show "${EVENT_MAIN_SHA}:sop/project-state.yaml" | python -c 'import json,sys; print(json.load(sys.stdin)["submission_tracking"]["revision"])')"
+          base_main_sha="${REQUESTED_MAIN_SHA:-$EVENT_MAIN_SHA}"
+          base_revision="${REQUESTED_REVISION:-$event_revision}"
+
+          command=(
+            python .github/scripts/sop_dashboard_action.py
+            --action "$DASHBOARD_ACTION"
+            --actor "$TRIGGERING_ACTOR"
+            --base-main-sha "$base_main_sha"
+            --current-main-sha "$current_main_sha"
+            --base-revision "$base_revision"
+            --reminder-detail "$REMINDER_DETAIL"
+          )
+          if [[ -n "$ASSIGNMENT_ID" ]]; then
+            command+=(--assignment-id "$ASSIGNMENT_ID")
+          fi
+          "${command[@]}" | tee dashboard-action-plan.json
+
+          approved_action="$(python -c 'import json; print(json.load(open("dashboard-action-plan.json", encoding="utf-8"))["action"])')"
+          approved_assignment_id="$(python -c 'import json; data=json.load(open("dashboard-action-plan.json", encoding="utf-8")); print(data["target"].get("assignment_id", ""))')"
+          approved_reminder_detail="$(python -c 'import json; data=json.load(open("dashboard-action-plan.json", encoding="utf-8")); print(data["plan"]["operation"]["inputs"].get("reminder_detail", ""))')"
+          echo "action=$approved_action" >> "$GITHUB_OUTPUT"
+          echo "current_main_sha=$current_main_sha" >> "$GITHUB_OUTPUT"
+          echo "current_revision=$current_revision" >> "$GITHUB_OUTPUT"
+          echo "assignment_id=$approved_assignment_id" >> "$GITHUB_OUTPUT"
+          echo "reminder_detail=$approved_reminder_detail" >> "$GITHUB_OUTPUT"
+
+      - name: Publish authorization summary
+        if: ${{ steps.final_guard.outputs.active == 'true' }}
+        env:
+          DASHBOARD_ACTION: ${{ steps.authorize.outputs.action }}
+          CURRENT_MAIN_SHA: ${{ steps.authorize.outputs.current_main_sha }}
+          CURRENT_REVISION: ${{ steps.authorize.outputs.current_revision }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+        shell: bash
+        run: |
+          {
+            echo "## SOP 协调操作台"
+            echo
+            echo "- 操作：\`$DASHBOARD_ACTION\`"
+            echo "- 实际触发人：\`$TRIGGERING_ACTOR\`"
+            echo "- main：\`$CURRENT_MAIN_SHA\`"
+            echo "- project-state revision：\`$CURRENT_REVISION\`"
+            echo "- 结果：权限、事件快照与乐观锁已通过；下游必须复验同一快照。"
+            echo
+            echo "本操作不构成成员接受、成员提交确认或 Gate 批准。"
+            echo
+            echo "<details><summary>机器动作计划</summary>"
+            echo
+            echo '```json'
+            cat dashboard-action-plan.json
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  refresh-state:
+    needs: authorize
+    if: ${{ needs.authorize.outputs.action == 'refresh-state' }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/sop-readme-dashboard.yml
+    with:
+      delegated: true
+      expected_main_sha: ${{ needs.authorize.outputs.current_main_sha }}
+      expected_revision: ${{ needs.authorize.outputs.current_revision }}
+
+  task-reminder:
+    needs: authorize
+    if: ${{ needs.authorize.outputs.action == 'task-reminder' }}
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/sop-notifications.yml
+    with:
+      delegated: true
+      notification_action: task-reminder
+      assignment_id: ${{ needs.authorize.outputs.assignment_id }}
+      reminder_detail: ${{ needs.authorize.outputs.reminder_detail }}
+      reminder_identity: dashboard-${{ github.run_id }}
+      expected_main_sha: ${{ needs.authorize.outputs.current_main_sha }}
+      expected_revision: ${{ needs.authorize.outputs.current_revision }}
+  notification-test:
+    needs: authorize
+    if: ${{ needs.authorize.outputs.action == 'notification-test' }}
+    runs-on: ubuntu-latest
+    environment: sop-notifications
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout authorized main snapshot
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.authorize.outputs.current_main_sha }}
+          fetch-depth: 0
+
+      - name: Revalidate notification capability and authorized snapshot
+        env:
+          EXPECTED_MAIN_SHA: ${{ needs.authorize.outputs.current_main_sha }}
+          EXPECTED_REVISION: ${{ needs.authorize.outputs.current_revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          current_main_sha="$(git rev-parse HEAD)"
+          remote_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$current_main_sha" != "$remote_main_sha" || "$current_main_sha" != "$EXPECTED_MAIN_SHA" ]]; then
+            echo "Authorized main snapshot is stale." >&2
+            exit 1
+          fi
+          guard_output="$RUNNER_TEMP/sop-notification-guard.txt"
+          : > "$guard_output"
+          python .github/scripts/sop_project_guard.py \
+            --capability dingtalk_notifications \
+            --github-output "$guard_output"
+          grep -qx 'active=true' "$guard_output"
+          current_revision="$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          state = json.loads(Path("sop/project-state.yaml").read_text(encoding="utf-8"))
+          print(state["submission_tracking"]["revision"])
+          PY
+          )"
+          if [[ "$current_revision" != "$EXPECTED_REVISION" ]]; then
+            echo "Authorized project-state revision is stale." >&2
+            exit 1
+          fi
+
+      - name: Deliver protected DingTalk channel test
+        env:
+          DINGWEBHOOK: ${{ secrets.DINGWEBHOOK }}
+          DINGSECRET: ${{ secrets.DINGSECRET }}
+          DING_MEMBER_MAP: ${{ secrets.DING_MEMBER_MAP }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          python .github/scripts/sop_dingtalk_notifier.py \
+            --test \
+            --run-url "$RUN_URL"

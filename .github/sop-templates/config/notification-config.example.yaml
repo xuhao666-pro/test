@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "channel": "github-issues-and-dingtalk",
+  "coordinator_github_login": "coordinator-account",
+  "members": {
+    "member-id": {
+      "enabled": true,
+      "github_login": "member-account"
+    }
+  }
+}

@@ -1,0 +1,402 @@
+name: SOP reminders
+
+on:
+  workflow_call:
+    inputs:
+      delegated:
+        description: Must be true for the authorized dashboard caller
+        required: true
+        type: boolean
+      notification_action:
+        description: Internal notification action
+        required: true
+        type: string
+      assignment_id:
+        description: Exact assignment ID for task-reminder
+        required: false
+        type: string
+      reminder_detail:
+        description: Optional reminder detail; never treated as SOP input
+        required: false
+        type: string
+      reminder_identity:
+        description: Idempotency key for the reminder
+        required: false
+        type: string
+      expected_main_sha:
+        description: Authorized main SHA that must still be current
+        required: true
+        type: string
+      expected_revision:
+        description: Authorized project-state revision that must still be current
+        required: true
+        type: string
+  push:
+    branches:
+      - "main"
+    paths:
+      - "sop/stages/*/dispatch/*.yaml"
+      - "sop/stages/*/submissions/**/submission-manifest.yaml"
+      - "sop/project-state.yaml"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      active: ${{ steps.guard.outputs.active }}
+    steps:
+      - name: Checkout trusted main for lifecycle guard
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Check notification capabilities before Environment access
+        id: guard
+        shell: bash
+        run: |
+          python .github/scripts/sop_project_guard.py \
+            --capability github_issue_notifications \
+            --capability dingtalk_notifications \
+            --github-output "$GITHUB_OUTPUT"
+
+  notify:
+    needs: preflight
+    if: ${{ needs.preflight.outputs.active == 'true' }}
+    runs-on: ubuntu-latest
+    environment: sop-notifications
+    steps:
+      - name: Refuse unsafe reusable invocation
+        if: ${{ github.ref != 'refs/heads/main' || (inputs.delegated && github.run_attempt != 1) || (!inputs.delegated && github.event_name != 'push') }}
+        shell: bash
+        run: |
+          echo "Reusable notification execution requires a fresh caller run on main." >&2
+          exit 1
+
+      - name: Checkout exact notification snapshot
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event_name == 'push' && github.sha || 'main' }}
+          fetch-depth: 0
+
+      - name: Revalidate current main and notification capabilities
+        id: final_guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse refs/remotes/origin/main)" ]]; then
+            echo "Notification snapshot is no longer current main." >&2
+            exit 1
+          fi
+          python .github/scripts/sop_project_guard.py \
+            --capability github_issue_notifications \
+            --capability dingtalk_notifications \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Fetch registered member refs
+        if: ${{ steps.final_guard.outputs.active == 'true' }}
+        run: git fetch origin --prune
+
+      - name: Revalidate delegated execution snapshot
+        if: ${{ steps.final_guard.outputs.active == 'true' && inputs.delegated }}
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_REVISION: ${{ inputs.expected_revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_main_sha="$(git rev-parse HEAD)"
+          remote_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          current_revision="$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          state = json.loads(Path("sop/project-state.yaml").read_text(encoding="utf-8"))
+          print(state["submission_tracking"]["revision"])
+          PY
+          )"
+          if [[ "$current_main_sha" != "$remote_main_sha" ]]; then
+            echo "Checked-out main is no longer current." >&2
+            exit 1
+          fi
+          if [[ "$current_main_sha" != "$EXPECTED_MAIN_SHA" ]]; then
+            echo "Authorized main SHA is stale." >&2
+            exit 1
+          fi
+          if [[ "$current_revision" != "$EXPECTED_REVISION" ]]; then
+            echo "Authorized project-state revision is stale." >&2
+            exit 1
+          fi
+
+      - name: Refresh trusted state in the runner only
+        if: ${{ steps.final_guard.outputs.active == 'true' && inputs.delegated }}
+        env:
+          SOP_PROJECT_ROOT: "."
+        run: |
+          python .github/scripts/sop_coordinator_cli.py refresh-project-state "$SOP_PROJECT_ROOT" \
+            --remote origin --validate-remote \
+            --member-cli .github/scripts/sop_member_cli.py
+
+      - name: Deliver SOP event reminders
+        if: ${{ steps.final_guard.outputs.active == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DINGWEBHOOK: ${{ secrets.DINGWEBHOOK }}
+          DINGSECRET: ${{ secrets.DINGSECRET }}
+          DING_MEMBER_MAP: ${{ secrets.DING_MEMBER_MAP }}
+          SOP_PROJECT_ROOT: "."
+          EVENT_NAME: ${{ github.event_name }}
+          DELEGATED_MODE: ${{ inputs.delegated }}
+          NOTIFICATION_ACTION: ${{ inputs.notification_action }}
+          ASSIGNMENT_ID: ${{ inputs.assignment_id }}
+          REMINDER_DETAIL: ${{ inputs.reminder_detail }}
+          REMINDER_IDENTITY: ${{ inputs.reminder_identity }}
+          PUSH_REF: ${{ github.ref }}
+          PUSH_SHA: ${{ github.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import importlib.util
+          import json
+          import os
+          import pathlib
+          import re
+          import subprocess
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          script = pathlib.Path(".github/scripts/sop_issue_notifier.py")
+          dingtalk_script = pathlib.Path(".github/scripts/sop_dingtalk_notifier.py")
+          spec = importlib.util.spec_from_file_location("sop_issue_notifier", script)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          root = pathlib.Path(os.environ["SOP_PROJECT_ROOT"]).resolve()
+          before = os.environ.get("PUSH_BEFORE", "")
+          sha = os.environ.get("PUSH_SHA", "")
+          event_name = os.environ.get("EVENT_NAME", "")
+          delegated = os.environ.get("DELEGATED_MODE", "").lower() == "true"
+          action = os.environ.get("NOTIFICATION_ACTION", "")
+
+          def assignment_path(assignment_id):
+              if not re.fullmatch(r"[A-Za-z0-9._-]+", assignment_id or ""):
+                  raise SystemExit("task-reminder requires a safe exact assignment_id")
+              matches = []
+              for path in root.glob("sop/stages/*/dispatch/*.yaml"):
+                  data = module.load_json_yaml(path)
+                  if str(data.get("assignment_id", "")) == assignment_id:
+                      matches.append(path)
+              if len(matches) != 1:
+                  raise SystemExit(
+                      f"Expected one assignment for {assignment_id}, found {len(matches)}"
+                  )
+              return matches[0].relative_to(root).as_posix()
+
+          def reminder_status(assignment_id):
+              state = module.load_json_yaml(root / "sop/project-state.yaml")
+              for stage in dict(state.get("submission_tracking", {})).get("stages", {}).values():
+                  record = dict(stage.get("records", {})).get(assignment_id)
+                  if not isinstance(record, dict):
+                      continue
+                  status = str(record.get("status", ""))
+                  validation = str(record.get("validation_status", ""))
+                  if status not in {"missing", "blocked"} and validation not in {
+                      "not-submitted", "invalid"
+                  }:
+                      raise SystemExit(
+                          f"task-reminder refused for status={status}, validation={validation}"
+                      )
+                  return status, validation
+              raise SystemExit(f"No trusted state record for {assignment_id}")
+
+          def ensure_assignment_issue(assignment, commit):
+              command = [
+                  "python", str(script),
+                  "--event", "task-dispatched",
+                  "--assignment", assignment,
+                  "--commit", commit,
+                  "--run-url", os.environ["RUN_URL"],
+              ]
+              issue_result = subprocess.run(
+                  command, check=True, text=True, capture_output=True
+              )
+              result = json.loads(issue_result.stdout)
+              print(json.dumps(result, ensure_ascii=False))
+              if not bool(result.get("delivered", False)):
+                  raise SystemExit("Assignment Issue notification is disabled")
+
+          def deliver_event(event, assignment, commit, detail="", identity=""):
+              command = [
+                  "python", str(script),
+                  "--event", event,
+                  "--assignment", assignment,
+                  "--commit", commit,
+                  "--run-url", os.environ["RUN_URL"],
+                  "--detail", detail,
+              ]
+              if identity:
+                  command.extend(["--identity", identity])
+              issue_result = subprocess.run(
+                  command, check=True, text=True, capture_output=True
+              )
+              result = json.loads(issue_result.stdout)
+              print(json.dumps(result, ensure_ascii=False))
+              if not bool(result.get("delivered", False)):
+                  return False
+              issue_number = int(result["issue"])
+              dingtalk_marker = str(result["dingtalk_marker"])
+              client = module.GitHubClient(
+                  os.environ.get("GITHUB_REPOSITORY", ""),
+                  os.environ.get("GITHUB_TOKEN", ""),
+              )
+              if client.comment_exists(issue_number, dingtalk_marker):
+                  return False
+              dingtalk_command = [
+                  "python", str(dingtalk_script),
+                  "--event", event,
+                  "--assignment", assignment,
+                  "--commit", commit,
+                  "--run-url", os.environ["RUN_URL"],
+                  "--detail", detail,
+              ]
+              subprocess.run(dingtalk_command, check=True)
+              client.request(
+                  "POST",
+                  f"/issues/{issue_number}/comments",
+                  {
+                      "body": (
+                          f"{dingtalk_marker}\n"
+                          "钉钉提醒已投递（机器幂等记录，不构成 SOP 事实）。"
+                      )
+                  },
+              )
+              return True
+
+          if delegated and action == "task-reminder":
+              assignment_id = os.environ.get("ASSIGNMENT_ID", "").strip()
+              assignment = assignment_path(assignment_id)
+              status, validation = reminder_status(assignment_id)
+              commit = subprocess.check_output(
+                  ["git", "log", "-1", "--format=%H", "--", assignment], text=True
+              ).strip()
+              identity = os.environ.get("REMINDER_IDENTITY", "").strip() or datetime.now(
+                  ZoneInfo("Asia/Shanghai")
+              ).strftime("%Y-%m-%d")
+              detail = os.environ.get("REMINDER_DETAIL", "").strip()
+              projection = f"status={status}, validation={validation}"
+              detail = f"{projection}; {detail}" if detail else projection
+              ensure_assignment_issue(assignment, commit)
+              emitted = deliver_event(
+                  "task-reminder", assignment, commit, detail, identity
+              )
+              print(json.dumps({"notification_events": int(emitted), "mode": "task-reminder"}))
+              raise SystemExit(0)
+
+          if delegated:
+              raise SystemExit(f"Unsupported notification action: {action}")
+          if event_name != "push":
+              raise SystemExit(f"Unsupported notification event: {event_name}")
+          if not sha or not os.environ.get("PUSH_REF", ""):
+              raise SystemExit("push notification requires exact ref and commit")
+          changed = []
+          if before and set(before) != {"0"}:
+              changed = subprocess.check_output(
+                  ["git", "diff", "--name-only", before, sha], text=True
+              ).splitlines()
+          elif sha:
+              # Root pushes have no parent SHA. Recover the exact commit's
+              # changed paths so retries keep the same event scope.
+              changed = subprocess.check_output(
+                  ["git", "diff-tree", "--root", "--no-commit-id", "--name-only", "-r", sha],
+                  text=True,
+              ).splitlines()
+          events = module.discover_events(
+              pathlib.Path(os.environ["SOP_PROJECT_ROOT"]),
+              os.environ["PUSH_REF"],
+              sha,
+              changed,
+          )
+
+          def git_json(commit, path):
+              if not commit or set(commit) == {"0"}:
+                  return {}
+              try:
+                  raw = subprocess.check_output(
+                      ["git", "show", f"{commit}:{path}"], text=True
+                  )
+              except subprocess.CalledProcessError:
+                  return {}
+              value = json.loads(raw)
+              return value if isinstance(value, dict) else {}
+
+          if (
+              os.environ.get("PUSH_REF", "") == "refs/heads/main"
+              and "sop/project-state.yaml" in changed
+          ):
+              assignment_paths = {}
+              assignment_commits = {}
+              for path in root.glob("sop/stages/*/dispatch/*.yaml"):
+                  assignment = module.load_json_yaml(path)
+                  assignment_id = str(assignment.get("assignment_id", ""))
+                  if not assignment_id:
+                      continue
+                  relative = path.relative_to(root).as_posix()
+                  assignment_paths[assignment_id] = relative
+                  assignment_commits[assignment_id] = subprocess.check_output(
+                      ["git", "log", "-1", "--format=%H", "--", relative],
+                      text=True,
+                  ).strip()
+              events.extend(
+                  module.discover_project_state_events(
+                      git_json(before, "sop/project-state.yaml"),
+                      git_json(sha, "sop/project-state.yaml"),
+                      assignment_paths,
+                      assignment_commits,
+                      sha,
+                  )
+              )
+
+          unique_events = []
+          seen = set()
+          for event in events:
+              event_commit = str(event.get("commit") or sha)
+              key = (
+                  event.get("event"),
+                  event.get("assignment"),
+                  event_commit,
+                  event.get("detail", ""),
+              )
+              if key in seen:
+                  continue
+              seen.add(key)
+              item = dict(event)
+              item["commit"] = event_commit
+              unique_events.append(item)
+
+          emitted = 0
+          for event in unique_events:
+              emitted += int(
+                  deliver_event(
+                      event["event"],
+                      event["assignment"],
+                      event["commit"],
+                      event.get("detail", ""),
+                  )
+              )
+          print(
+              json.dumps(
+                  {
+                      "notification_events": emitted,
+                      "discovered_events": len(unique_events),
+                  }
+              )
+          )
+          PY

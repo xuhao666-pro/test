@@ -1,0 +1,158 @@
+name: SOP 中央状态与 README 看板
+
+on:
+  workflow_call:
+    inputs:
+      delegated:
+        description: Must be true for the authorized dashboard caller
+        required: true
+        type: boolean
+      expected_main_sha:
+        description: Authorized main SHA that must still be current
+        required: true
+        type: string
+      expected_revision:
+        description: Authorized project-state revision that must still be current
+        required: true
+        type: string
+  push:
+    branches:
+      - "main"
+    paths:
+      - "sop/project-state.yaml"
+      - "sop/stages/**/stage-state.yaml"
+      - "sop/stages/**/submissions/**"
+      - "sop/stages/**/acceptances/**"
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sop-state-dashboard
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      active: ${{ steps.guard.outputs.active }}
+    steps:
+      - name: Checkout trusted main for lifecycle guard
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Check dashboard capability
+        id: guard
+        shell: bash
+        run: |
+          python .github/scripts/sop_project_guard.py \
+            --capability dashboard \
+            --github-output "$GITHUB_OUTPUT"
+
+  refresh-and-render:
+    needs: preflight
+    if: ${{ needs.preflight.outputs.active == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse unsafe reusable invocation
+        if: ${{ github.ref != 'refs/heads/main' || (inputs.delegated && github.run_attempt != 1) || (!inputs.delegated && github.event_name != 'push' && github.event_name != 'schedule') }}
+        shell: bash
+        run: |
+          echo "Reusable dashboard execution requires a fresh caller run on main." >&2
+          exit 1
+
+      - name: Checkout central main
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: "main"
+          fetch-depth: 0
+
+      - name: Revalidate current main and dashboard capability
+        id: final_guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse refs/remotes/origin/main)" ]]; then
+            echo "Checked-out main is stale." >&2
+            exit 1
+          fi
+          python .github/scripts/sop_project_guard.py \
+            --capability dashboard \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Fetch registered member refs
+        if: ${{ steps.final_guard.outputs.active == 'true' }}
+        run: git fetch origin --prune
+
+      - name: Revalidate delegated execution snapshot
+        if: ${{ steps.final_guard.outputs.active == 'true' && inputs.delegated }}
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_REVISION: ${{ inputs.expected_revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_main_sha="$(git rev-parse HEAD)"
+          remote_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          current_revision="$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          state = json.loads(Path("sop/project-state.yaml").read_text(encoding="utf-8"))
+          print(state["submission_tracking"]["revision"])
+          PY
+          )"
+          if [[ "$current_main_sha" != "$remote_main_sha" ]]; then
+            echo "Checked-out main is no longer current." >&2
+            exit 1
+          fi
+          if [[ "$current_main_sha" != "$EXPECTED_MAIN_SHA" ]]; then
+            echo "Authorized main SHA is stale." >&2
+            exit 1
+          fi
+          if [[ "$current_revision" != "$EXPECTED_REVISION" ]]; then
+            echo "Authorized project-state revision is stale." >&2
+            exit 1
+          fi
+
+      - name: Refresh validated state and render dashboard
+        if: ${{ steps.final_guard.outputs.active == 'true' }}
+        env:
+          SOP_PROJECT_ROOT: "."
+          SOP_STATE_PATH: "sop/project-state.yaml"
+          SOP_DASHBOARD_PATH: "dashboard/status.svg"
+          SOP_README_PATH: "README.md"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python .github/scripts/sop_coordinator_cli.py refresh-project-state "$SOP_PROJECT_ROOT" \
+            --remote origin --validate-remote \
+            --member-cli .github/scripts/sop_member_cli.py
+          python .github/scripts/sop_readme_dashboard.py \
+            --state "$SOP_STATE_PATH" \
+            --output "$SOP_DASHBOARD_PATH" \
+            --readme "$SOP_README_PATH" \
+            --action-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/workflows/sop-dashboard-actions.yml"
+
+      - name: Commit one central snapshot
+        if: ${{ steps.final_guard.outputs.active == 'true' }}
+        env:
+          SOP_STATE_PATH: "sop/project-state.yaml"
+          SOP_DASHBOARD_PATH: "dashboard/status.svg"
+          SOP_README_PATH: "README.md"
+          SOP_MAIN_BRANCH: "main"
+        run: |
+          if [ -z "$(git status --porcelain -- "$SOP_STATE_PATH" "$SOP_DASHBOARD_PATH" "$SOP_README_PATH")" ]; then
+            echo "Central state and dashboard are already current."
+            exit 0
+          fi
+          git add -- "$SOP_STATE_PATH" "$SOP_DASHBOARD_PATH" "$SOP_README_PATH"
+          git commit -m "sop: refresh validated state and README dashboard"
+          git push origin "HEAD:$SOP_MAIN_BRANCH"

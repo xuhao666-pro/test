@@ -1,0 +1,22 @@
+* text=auto
+/.gitattributes text eol=lf
+/.gitignore text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.py text eol=lf
+
+# Stable release packages are vendored byte-for-byte.
+/ai-sop-coordinator-skill-v1.8.4/** -text
+/ai-sop-coordinator-skill-v2.0.0/** -text
+/ai-sop-member-skill-v1.8.0/** -text
+/ai-sop-member-skill-v1.8.1/** -text
+/ai-sop-member-skill-v2.0.0/** -text
+
+# Runtime-lock hashes bind these exact trusted bytes on every platform.
+/.github/scripts/sop_coordinator_cli.py -text
+/.github/scripts/sop_member_cli.py -text
+/.github/scripts/sop_member_cli_1_8_0.py -text
+/.github/scripts/sop_development_cli.py -text
+/.github/scripts/sop_member_development_cli.py -text

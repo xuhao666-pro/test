@@ -1,0 +1,36 @@
+{
+  "package_name": "ai-sop-coordinator-skill",
+  "package_version": "2.0.0",
+  "release_status": "stable",
+  "build_id": "coordinator-dev-cli-2.0.0-v1",
+  "skill_name": "ai-sop-coordinator",
+  "skill_path": "ai-sop-coordinator",
+  "protocol_version": "1.0",
+  "project_schema_version": "2.0",
+  "source_sop": "AI协同软件开发统一SOP_V2.0.md",
+  "integrated_feature_source": "A-E coordination, task-scoped code governance, G4/G5, rollout, incident, and delivery closure content contract",
+  "integrated_remote_round_source": "tnt201440-ship-it/test@222d3552bcbeddaa1e3333e5b7d2f91b812ddabe:.github/scripts/sop_coordinator_cli.py",
+  "documentation": "USAGE.zh-CN.md",
+  "distribution_role": "coordinator-only",
+  "runtime": {
+    "python_minimum": "3.10",
+    "external_python_dependencies": [],
+    "coordination_store": "shared private Git repository",
+    "bundled_remote_validator": "ai-sop-coordinator/assets/remote-validator/member_cli.py",
+    "bundled_legacy_remote_validator": "ai-sop-coordinator/assets/remote-validator/member_cli_1_8_0.py",
+    "github_issue_notifications": "ai-sop-coordinator/assets/github-notifications",
+    "human_gate_review_template": "ai-sop-coordinator/assets/project-template/gate-review-pack.md",
+    "human_gate_review_contract": "ai-sop-coordinator/references/human-gate-review-pack.md",
+    "predevelopment_cli": "ai-sop-coordinator/scripts/coordinator_cli.py (V1.8.4 compatibility)",
+    "development_cli": "ai-sop-coordinator/scripts/development_cli.py (V2.0.0)",
+    "automation_scope": "A-C/G1-G3 compatibility plus deterministic development task dispatch, independent review, main integration, G4, rollout, and G5 closure"
+  },
+  "companion_package": {
+    "name": "ai-sop-member-skill",
+    "minimum_version": "2.0.0",
+    "exact_version": "2.0.0",
+    "exact_build_id": "member-dev-cli-2.0.0-v1",
+    "installation_required_on_coordinator": false,
+    "installation_required_on_members": true
+  }
+}

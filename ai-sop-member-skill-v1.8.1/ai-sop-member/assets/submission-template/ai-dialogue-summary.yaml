@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "status": "pending",
+  "mode": "required",
+  "member_id": "",
+  "task_understanding": {
+    "reviewed": false,
+    "member_correction_status": "pending"
+  },
+  "exploration": {
+    "initial_map": false,
+    "alternatives_compared": false,
+    "counterexamples_discussed": false,
+    "risks_discussed": false,
+    "tradeoffs_discussed": false,
+    "periodic_restatement_confirmed": false
+  },
+  "member_position": {
+    "confirmed_points": [],
+    "opposed_points": [],
+    "questions": [],
+    "reservations": []
+  },
+  "ai_inferences": [],
+  "mapped_to_formal_outputs": false,
+  "gate_effect": "none"
+}

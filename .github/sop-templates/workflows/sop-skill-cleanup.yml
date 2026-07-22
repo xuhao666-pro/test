@@ -1,0 +1,170 @@
+name: SOP Skill 自动清理提案
+
+on:
+  schedule:
+    - cron: "30 1 * * 1"
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "ai-sop-coordinator-skill-v*/package-manifest.json"
+      - "ai-sop-member-skill-v*/package-manifest.json"
+      - ".github/sop-skill-retention.json"
+      - ".github/scripts/sop_skill_cleanup.py"
+      - ".github/workflows/sop-skill-cleanup.yml"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sop-skill-cleanup-proposal
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      active: ${{ steps.guard.outputs.active }}
+    steps:
+      - name: Checkout trusted main for lifecycle guard
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Check automatic cleanup capability
+        id: guard
+        shell: bash
+        run: |
+          python .github/scripts/sop_project_guard.py \
+            --capability automatic_skill_cleanup \
+            --github-output "$GITHUB_OUTPUT"
+
+  propose-cleanup:
+    needs: preflight
+    if: ${{ needs.preflight.outputs.active == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      CLEANUP_BRANCH: automation/sop-skill-cleanup
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout central main
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Revalidate current main and cleanup capability
+        id: final_guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse refs/remotes/origin/main)" ]]; then
+            echo "Checked-out main is stale." >&2
+            exit 1
+          fi
+          python .github/scripts/sop_project_guard.py \
+            --capability automatic_skill_cleanup \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Build read-only cleanup plan
+        id: plan
+        if: ${{ steps.final_guard.outputs.active == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan_path="$RUNNER_TEMP/sop-skill-cleanup-plan.json"
+          python .github/scripts/sop_skill_cleanup.py plan . --format json > "$plan_path"
+          python - "$plan_path" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import sys
+
+          plan = json.load(open(sys.argv[1], encoding="utf-8"))
+          with open(sys.argv[2], "a", encoding="utf-8") as output:
+              output.write(f"candidate_count={plan['summary']['candidate_count']}\n")
+              output.write(f"confirmation_token={plan['confirmation_token']}\n")
+          PY
+          cat "$plan_path" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop when nothing is eligible
+        if: ${{ steps.final_guard.outputs.active == 'true' && steps.plan.outputs.candidate_count == '0' }}
+        run: echo "没有可安全清理的 Skill 发行包。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create cleanup commit on proposal branch
+        if: ${{ steps.final_guard.outputs.active == 'true' && steps.plan.outputs.candidate_count != '0' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$CLEANUP_BRANCH:refs/remotes/origin/$CLEANUP_BRANCH" || true
+          git checkout -B "$CLEANUP_BRANCH" origin/main
+          python .github/scripts/sop_skill_cleanup.py apply . \
+            --confirm-token "${{ steps.plan.outputs.confirmation_token }}" \
+            --reason "GitHub Actions 定期清理未引用且已被稳定版本替代的 Skill 发行包"
+          python -m py_compile \
+            .github/scripts/sop_skill_cleanup.py \
+            .github/scripts/sop_coordinator_cli.py \
+            .github/scripts/sop_member_cli.py \
+            .github/scripts/sop_member_cli_1_8_0.py \
+            .github/scripts/sop_readme_dashboard.py
+          python -m unittest discover -s .github/tests -p 'test_sop_skill_cleanup*.py' -v
+          python .github/scripts/sop_member_cli.py --help > /dev/null
+          python .github/scripts/sop_member_cli_1_8_0.py --help > /dev/null
+          python .github/scripts/sop_coordinator_cli.py status . > /dev/null
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(sop): propose obsolete skill cleanup"
+          git push --force-with-lease origin "HEAD:refs/heads/$CLEANUP_BRANCH"
+
+      - name: Create or update cleanup pull request
+        if: ${{ steps.final_guard.outputs.active == 'true' && steps.plan.outputs.candidate_count != '0' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          body_path="$RUNNER_TEMP/sop-skill-cleanup-pr.md"
+          python - "$RUNNER_TEMP/sop-skill-cleanup-plan.json" "$body_path" <<'PY'
+          import json
+          import sys
+
+          plan = json.load(open(sys.argv[1], encoding="utf-8"))
+          lines = [
+              "## 自动 Skill 清理提案",
+              "",
+              f"- 基准提交：`{plan['repository_head']}`",
+              f"- 确认 Token：`{plan['confirmation_token']}`",
+              f"- 待清理：{plan['summary']['candidate_count']} 个",
+              f"- 保留：{plan['summary']['retained_count']} 个",
+              "",
+              "### 待清理发行包",
+              "",
+          ]
+          lines.extend(f"- `{item['path']}`" for item in plan["candidates"])
+          lines.extend([
+              "",
+              "### 安全边界",
+              "",
+              "- 本 PR 不自动合并，必须人工审核。",
+              "- 任务引用、当前运行时、最新稳定版和人工固定版本已自动保留。",
+              "- 删除使用 `git rm`，历史提交仍可恢复。",
+              "- 自动化已在提案分支运行清理器及当前版本回归测试。",
+          ])
+          open(sys.argv[2], "w", encoding="utf-8").write("\n".join(lines) + "\n")
+          PY
+          existing="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$CLEANUP_BRANCH" --base main --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$existing" ]; then
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$CLEANUP_BRANCH" \
+              --title "chore(sop): 清理未引用的旧 Skill 发行包" \
+              --body-file "$body_path"
+          else
+            gh api --method PATCH \
+              "repos/$GITHUB_REPOSITORY/pulls/$existing" \
+              --raw-field title="chore(sop): 清理未引用的旧 Skill 发行包" \
+              --raw-field body="$(cat "$body_path")" > /dev/null
+          fi

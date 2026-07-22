@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "enabled": true,
+  "actors": {
+    "coordinator-github-login": {
+      "enabled": true,
+      "roles": [
+        "coordinator"
+      ]
+    }
+  },
+  "actions": {
+    "refresh-state": {
+      "enabled": true,
+      "risk": "low",
+      "allowed_roles": [
+        "coordinator"
+      ]
+    },
+    "notification-test": {
+      "enabled": true,
+      "risk": "low",
+      "allowed_roles": [
+        "coordinator"
+      ]
+    },
+    "task-reminder": {
+      "enabled": true,
+      "risk": "low",
+      "allowed_roles": [
+        "coordinator"
+      ]
+    }
+  },
+  "explicitly_forbidden_actions": [
+    "accept-assignment",
+    "confirm-submission",
+    "dispatch-task",
+    "close-round",
+    "approve-gate",
+    "merge-gate",
+    "deploy-production",
+    "rollback-production",
+    "repair-production-data",
+    "modify-secrets"
+  ]
+}

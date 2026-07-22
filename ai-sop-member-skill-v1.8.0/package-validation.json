@@ -1,0 +1,29 @@
+{
+  "package_name": "ai-sop-member-skill",
+  "package_version": "1.8.0",
+  "validated_at": "2026-07-15",
+  "results": [
+    {"check": "skill-creator quick_validate with UTF-8 mode", "status": "passed"},
+    {"check": "Member CLI Python syntax compilation and command discovery", "status": "passed"},
+    {"check": "Existing assignment-snapshot and authorized-baseline Git validation remains preserved", "status": "passed"},
+    {"check": "V1.7.5 task contract hash protects human_collaboration and submission_confirmation independently", "status": "passed"},
+    {"check": "human_collaboration none disables Grill but still requires human-submission-confirmation.yaml", "status": "passed"},
+    {"check": "init creates a not-prepared confirmation record and manifest summary", "status": "passed"},
+    {"check": "Validation is blocked before preparation and while awaiting the registered human owner", "status": "passed"},
+    {"check": "Explicit owner confirmation binds the current normalized body hash and personal stance", "status": "passed"},
+    {"check": "confirm, oppose, question, and reserve remain valid personal positions without Gate effect", "status": "passed"},
+    {"check": "A material main-output change after confirmation blocks submit as stale", "status": "passed"},
+    {"check": "Confirmation manifest summary contains the exact confirmation-record hash", "status": "passed"},
+    {"check": "Adaptive Grill evidence remains separate from final submission confirmation", "status": "passed"},
+    {"check": "Pre-1.7.5 assignments remain compatible and explicit legacy-not-required", "status": "passed"},
+    {"check": "V1.8.0 assignments require the exact task-bound Member version and build_id before init", "status": "passed"},
+    {"check": "Required AI dialogue collaboration cannot be skipped and has gate_effect none", "status": "passed"}
+  ],
+  "known_boundaries": [
+    "human_collaboration none only disables Grill; it never waives final submission confirmation for V1.7.5 tasks.",
+    "The registered human owner must explicitly supply the personal stance and confirm the displayed current body hash; AI cannot infer, invent, or sign this response.",
+    "The local explicit-human-owner record prevents contract and hash mismatches but is not cryptographic identity proof.",
+    "Member submission confirmation authorizes only the individual contribution submission and has gate_effect none.",
+    "Pre-1.7.5 tasks remain legacy-not-required and cannot be retroactively signed."
+  ]
+}

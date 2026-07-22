@@ -1,0 +1,41 @@
+name: SOP Skill 清理提案校验
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "ai-sop-coordinator-skill-v*/**"
+      - "ai-sop-member-skill-v*/**"
+      - ".github/skill-cleanup/**"
+      - ".github/sop-skill-retention.json"
+      - ".github/scripts/sop_skill_cleanup.py"
+      - ".github/tests/test_sop_skill_cleanup*.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proposal
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Validate cleanup and retained runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            .github/scripts/sop_skill_cleanup.py \
+            .github/scripts/sop_coordinator_cli.py \
+            .github/scripts/sop_member_cli.py \
+            .github/scripts/sop_member_cli_1_8_0.py \
+            .github/scripts/sop_readme_dashboard.py
+          python -m unittest discover -s .github/tests -p 'test_sop_skill_cleanup*.py' -v
+          python .github/scripts/sop_member_cli.py --help > /dev/null
+          python .github/scripts/sop_member_cli_1_8_0.py --help > /dev/null
+          python .github/scripts/sop_skill_cleanup.py plan .
+          python .github/scripts/sop_coordinator_cli.py status . > /dev/null

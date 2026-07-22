@@ -1,0 +1,8 @@
+{
+  "schema_version": "1.0",
+  "stage_id": "[[FILL]]",
+  "source_index": "aggregation/provenance/source-block-index.yaml",
+  "source_index_hash": null,
+  "updated_at": null,
+  "targets": []
+}
