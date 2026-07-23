@@ -28,7 +28,7 @@ jobs:
           from pathlib import Path
 
           skills = {
-              Path("ai-sop-coordinator-skill-v2.1.0/ai-sop-coordinator"): "ai-sop-coordinator",
+              Path("ai-sop-coordinator-skill-v2.1.1/ai-sop-coordinator"): "ai-sop-coordinator",
               Path("ai-sop-member-skill-v2.1.0/ai-sop-member"): "ai-sop-member",
           }
           for root, expected_name in skills.items():
@@ -64,7 +64,7 @@ jobs:
             .github/scripts/sop_skill_cleanup.py
 
       - name: Run Coordinator V2.1 release tests
-        run: python3 -m unittest discover -s ai-sop-coordinator-skill-v2.1.0/tests -p 'test_*.py'
+        run: python3 -m unittest discover -s ai-sop-coordinator-skill-v2.1.1/tests -p 'test_*.py'
 
       - name: Run Member V2.1 release tests
         run: python3 -m unittest discover -s ai-sop-member-skill-v2.1.0/tests -p 'test_*.py'

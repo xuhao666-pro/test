@@ -42,14 +42,15 @@ EXPECTED_RUNTIME_NAMES = {
     "development_member",
 }
 REQUIRED_PACKAGES = {
-    "ai-sop-coordinator-skill-v2.1.0",
     "ai-sop-coordinator-skill-v1.8.4",
+    "ai-sop-coordinator-skill-v2.1.0",
+    "ai-sop-coordinator-skill-v2.1.1",
     "ai-sop-member-skill-v2.1.0",
 }
 UNIFIED_PACKAGE_RUNTIMES = {
-    "ai-sop-coordinator-skill-v2.1.0": {
+    "ai-sop-coordinator-skill-v2.1.1": {
         "package_name": "ai-sop-coordinator-skill",
-        "package_build_id": "coordinator-package-2.1.0-unified-runtimes-v1",
+        "package_build_id": "coordinator-package-2.1.1-unified-runtimes-v1",
         "profiles": {
             "predevelopment": (
                 "1.8.5",
@@ -644,6 +645,16 @@ def validate_packages() -> set[str]:
         or legacy_manifest.get("release_status") != "stable"
     ):
         raise ValidationError("Coordinator 1.8.4 lineage package identity mismatch")
+
+    previous_manifest = load_json(
+        ROOT / "ai-sop-coordinator-skill-v2.1.0" / "package-manifest.json"
+    )
+    if (
+        previous_manifest.get("package_name") != "ai-sop-coordinator-skill"
+        or previous_manifest.get("package_version") != "2.1.0"
+        or previous_manifest.get("release_status") != "stable"
+    ):
+        raise ValidationError("Coordinator 2.1.0 lineage package identity mismatch")
 
     trusted_sources: set[str] = set()
     for package_name, expected in UNIFIED_PACKAGE_RUNTIMES.items():
