@@ -1,4 +1,0 @@
-interface:
-  display_name: "AI SOP Member"
-  short_description: "Preflight exact versions, then execute confirmed member work"
-  default_prompt: "Use $ai-sop-member V1.8.1 to compare the assignment's exact Skill release before reading or producing task content; if it differs, stop with a verified remediation command, otherwise accept and execute the task."

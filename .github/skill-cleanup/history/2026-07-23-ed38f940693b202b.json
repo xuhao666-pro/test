@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "status": "staged",
+  "applied_at": "2026-07-23T02:27:42+00:00",
+  "repository_head_before_apply": "36270182c307ffbb597fe2c7f372b102804d3af2",
+  "confirmation_token": "ed38f940693b202b",
+  "reason": "Replace superseded root packages with unified V2.1 multi-runtime distributions",
+  "removed_packages": [
+    "ai-sop-coordinator-skill-v2.0.0",
+    "ai-sop-member-skill-v1.8.0",
+    "ai-sop-member-skill-v1.8.1",
+    "ai-sop-member-skill-v2.0.0"
+  ],
+  "retained_packages": [
+    "ai-sop-coordinator-skill-v1.8.4",
+    "ai-sop-coordinator-skill-v2.1.0",
+    "ai-sop-member-skill-v2.1.0"
+  ],
+  "history_preserved_by": "git",
+  "commit_and_push_required": true
+}

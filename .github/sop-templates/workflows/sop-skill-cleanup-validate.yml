@@ -10,7 +10,9 @@ on:
       - ".github/skill-cleanup/**"
       - ".github/sop-skill-retention.json"
       - ".github/scripts/sop_skill_cleanup.py"
-      - ".github/tests/test_sop_skill_cleanup*.py"
+      - ".github/scripts/sop_system_validate.py"
+      - ".github/tests/test_sop_skill_cleanup.py"
+      - ".github/tests/test_sop_system_validate.py"
 
 permissions:
   contents: read
@@ -30,11 +32,13 @@ jobs:
           set -euo pipefail
           python -m py_compile \
             .github/scripts/sop_skill_cleanup.py \
+            .github/scripts/sop_system_validate.py \
             .github/scripts/sop_coordinator_cli.py \
             .github/scripts/sop_member_cli.py \
             .github/scripts/sop_member_cli_1_8_0.py \
             .github/scripts/sop_readme_dashboard.py
-          python -m unittest discover -s .github/tests -p 'test_sop_skill_cleanup*.py' -v
+          python .github/scripts/sop_system_validate.py
+          python -m unittest discover -s .github/tests -p 'test_*.py' -v
           python .github/scripts/sop_member_cli.py --help > /dev/null
           python .github/scripts/sop_member_cli_1_8_0.py --help > /dev/null
           python .github/scripts/sop_skill_cleanup.py plan .

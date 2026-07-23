@@ -8,6 +8,7 @@ import datetime as dt
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -17,6 +18,17 @@ from typing import Any
 PACKAGE_RE = re.compile(r"^ai-sop-(coordinator|member)-skill-v(\d+(?:\.\d+)*)$")
 PACKAGE_TOKEN_RE = re.compile(r"ai-sop-(?:coordinator|member)-skill-v\d+(?:\.\d+)*")
 TEXT_SUFFIXES = {".json", ".yaml", ".yml", ".md", ".txt"}
+CANONICAL_RETENTION_POLICY = Path(".github/sop-skill-retention.json")
+SAFE_CACHE_DIR_NAMES = {
+    "__pycache__",
+    ".hypothesis",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "htmlcov",
+}
+SAFE_CACHE_FILE_NAMES = {".coverage", "coverage.xml"}
+SAFE_CACHE_SUFFIXES = {".pyc", ".pyo"}
 
 
 class CleanupError(RuntimeError):
@@ -211,9 +223,59 @@ def ensure_clean_tracked_worktree(root: Path) -> None:
         raise CleanupError("Tracked worktree changes exist; commit or stash them before cleanup")
 
 
+def untracked_nonignored_files(root: Path, relative: str) -> list[str]:
+    result = run_git(
+        root,
+        "ls-files",
+        "--others",
+        "--exclude-standard",
+        "--",
+        relative,
+    )
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def ignored_files(root: Path, relative: str) -> list[str]:
+    result = run_git(
+        root,
+        "ls-files",
+        "--others",
+        "--ignored",
+        "--exclude-standard",
+        "--",
+        relative,
+    )
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def is_safe_cache_relative(relative: Path) -> bool:
+    return (
+        any(part in SAFE_CACHE_DIR_NAMES for part in relative.parts)
+        or relative.name in SAFE_CACHE_FILE_NAMES
+        or relative.name.startswith(".coverage.")
+        or relative.suffix.lower() in SAFE_CACHE_SUFFIXES
+    )
+
+
+def unsafe_residual_entries(candidate: Path) -> list[str]:
+    unsafe: list[str] = []
+    for entry in candidate.rglob("*"):
+        if entry.is_symlink():
+            unsafe.append(entry.relative_to(candidate).as_posix())
+        elif entry.is_file() and not is_safe_cache_relative(
+            entry.relative_to(candidate)
+        ):
+            unsafe.append(entry.relative_to(candidate).as_posix())
+    return sorted(unsafe)
+
+
 def apply_plan(root: Path, config_path: Path, token: str, reason: str) -> dict[str, Any]:
     if not reason.strip():
         raise CleanupError("Cleanup reason cannot be blank")
+    if config_path.resolve() != (root / CANONICAL_RETENTION_POLICY).resolve():
+        raise CleanupError(
+            "Cleanup apply requires the canonical .github/sop-skill-retention.json policy"
+        )
     ensure_clean_tracked_worktree(root)
     plan = build_plan(root, config_path)
     if token != plan["confirmation_token"]:
@@ -221,11 +283,46 @@ def apply_plan(root: Path, config_path: Path, token: str, reason: str) -> dict[s
     paths = [item["path"] for item in plan["candidates"]]
     if not paths:
         raise CleanupError("Cleanup plan has no candidates")
+    candidates: list[Path] = []
+    untracked: list[str] = []
+    unsafe_ignored: list[str] = []
     for relative in paths:
-        candidate = (root / relative).resolve()
-        if candidate.parent != root.resolve() or not PACKAGE_RE.fullmatch(candidate.name):
+        candidate = root / relative
+        resolved = candidate.resolve()
+        if (
+            candidate.is_symlink()
+            or resolved.parent != root.resolve()
+            or not PACKAGE_RE.fullmatch(candidate.name)
+        ):
             raise CleanupError(f"Unsafe cleanup path: {relative}")
+        candidates.append(candidate)
+        untracked.extend(untracked_nonignored_files(root, relative))
+        for ignored in ignored_files(root, relative):
+            inside = Path(ignored).relative_to(relative)
+            if not is_safe_cache_relative(inside):
+                unsafe_ignored.append(ignored)
+    if untracked:
+        raise CleanupError(
+            "Cleanup candidates contain untracked non-ignored files: "
+            + ", ".join(sorted(untracked))
+        )
+    if unsafe_ignored:
+        raise CleanupError(
+            "Cleanup candidates contain ignored files outside the cache allowlist: "
+            + ", ".join(sorted(unsafe_ignored))
+        )
     run_git(root, "rm", "-r", "--", *paths)
+    for candidate in candidates:
+        if candidate.exists():
+            unsafe = unsafe_residual_entries(candidate)
+            if unsafe:
+                raise CleanupError(
+                    f"Cleanup target {candidate.name} contains unsafe residual files: "
+                    + ", ".join(unsafe)
+                )
+            shutil.rmtree(candidate)
+        if candidate.exists():
+            raise CleanupError(f"Cleanup target still exists: {candidate.name}")
     timestamp = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
     audit = {
         "schema_version": "1.0",

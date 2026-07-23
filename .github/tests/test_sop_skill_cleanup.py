@@ -231,6 +231,17 @@ class SkillCleanupTests(unittest.TestCase):
             root = Path(tmp)
             config = self.make_repo(root)
             plan = cleanup.build_plan(root, config)
+            info_exclude = root / ".git/info/exclude"
+            info_exclude.write_text("__pycache__/\n*.pyc\n", encoding="utf-8")
+            cache = (
+                root
+                / "ai-sop-coordinator-skill-v1.0.0"
+                / "tests"
+                / "__pycache__"
+                / "test_cache.pyc"
+            )
+            cache.parent.mkdir(parents=True)
+            cache.write_bytes(b"ignored bytecode")
             with self.assertRaisesRegex(cleanup.CleanupError, "token"):
                 cleanup.apply_plan(root, config, "wrong", "test cleanup")
             result = cleanup.apply_plan(
@@ -244,6 +255,61 @@ class SkillCleanupTests(unittest.TestCase):
             ).stdout
             self.assertIn("ai-sop-coordinator-skill-v1.0.0", staged)
             self.assertIn(".github/skill-cleanup/history/", staged)
+
+    def test_apply_refuses_untracked_nonignored_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = self.make_repo(root)
+            candidate = root / "ai-sop-coordinator-skill-v1.0.0"
+            (candidate / "local-notes.txt").write_text(
+                "do not delete", encoding="utf-8"
+            )
+            plan = cleanup.build_plan(root, config)
+            with self.assertRaisesRegex(
+                cleanup.CleanupError, "untracked non-ignored"
+            ):
+                cleanup.apply_plan(
+                    root,
+                    config,
+                    plan["confirmation_token"],
+                    "test cleanup",
+                )
+            self.assertTrue((candidate / "package-manifest.json").is_file())
+            self.assertTrue((candidate / "local-notes.txt").is_file())
+
+    def test_apply_refuses_ignored_files_outside_cache_allowlist(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = self.make_repo(root)
+            candidate = root / "ai-sop-coordinator-skill-v1.0.0"
+            info_exclude = root / ".git/info/exclude"
+            info_exclude.write_text(".env\n*.log\n", encoding="utf-8")
+            (candidate / ".env").write_text("LOCAL_SECRET=value", encoding="utf-8")
+            plan = cleanup.build_plan(root, config)
+            with self.assertRaisesRegex(cleanup.CleanupError, "cache allowlist"):
+                cleanup.apply_plan(
+                    root,
+                    config,
+                    plan["confirmation_token"],
+                    "test cleanup",
+                )
+            self.assertTrue((candidate / "package-manifest.json").is_file())
+            self.assertTrue((candidate / ".env").is_file())
+
+    def test_apply_refuses_noncanonical_policy_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = self.make_repo(root)
+            custom = root / "custom-retention.json"
+            custom.write_bytes(config.read_bytes())
+            plan = cleanup.build_plan(root, custom)
+            with self.assertRaisesRegex(cleanup.CleanupError, "canonical"):
+                cleanup.apply_plan(
+                    root,
+                    custom,
+                    plan["confirmation_token"],
+                    "test cleanup",
+                )
 
 
 if __name__ == "__main__":

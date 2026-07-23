@@ -1,4 +1,0 @@
-interface:
-  display_name: "AI SOP Member"
-  short_description: "Execute exact-release work with required AI dialogue collaboration"
-  default_prompt: "Use $ai-sop-member V1.8.0 to verify the task-bound exact release, perform the project AI dialogue policy inside independent production, and retain the existing final human hash-and-stance confirmation."
