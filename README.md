@@ -20,7 +20,7 @@
 - `.github/scripts/`：项目启用后使用的受信任运行时与自动化扩展。
 - `.github/sop-templates/`：未激活的工作流和配置模板。
 - `.github/sop-runtime-lock.json`：四个当前运行时及一个 legacy 运行时的版本、build ID、统一包来源与 SHA-256 锁。
-- [启动说明](.github/SOP-BOOTSTRAP.md) 与 [开发交付 SOP](docs/development-sop.md)。
+- [完整使用说明](docs/system-usage-guide.md)、[启动说明](.github/SOP-BOOTSTRAP.md) 与 [开发交付 SOP](docs/development-sop.md)。
 
 ## 启动全新项目
 
