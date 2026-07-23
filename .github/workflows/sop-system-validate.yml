@@ -20,6 +20,31 @@ jobs:
       - name: Validate bootstrap boundary and runtime lock
         run: python3 .github/scripts/sop_system_validate.py
 
+      - name: Validate Skill layout/frontmatter and runtime manifests
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          skills = {
+              Path("ai-sop-coordinator-skill-v2.1.0/ai-sop-coordinator"): "ai-sop-coordinator",
+              Path("ai-sop-member-skill-v2.1.0/ai-sop-member"): "ai-sop-member",
+          }
+          for root, expected_name in skills.items():
+              skill = root / "SKILL.md"
+              text = skill.read_text(encoding="utf-8")
+              parts = text.split("---", 2)
+              if len(parts) != 3 or parts[0].strip():
+                  raise SystemExit(f"invalid frontmatter delimiters: {skill}")
+              metadata = parts[1]
+              if f"name: {expected_name}" not in metadata or "description:" not in metadata:
+                  raise SystemExit(f"invalid Skill metadata: {skill}")
+              if not parts[2].strip():
+                  raise SystemExit(f"empty Skill body: {skill}")
+              for required in ("references", "scripts", "assets"):
+                  if not (root / required).is_dir():
+                      raise SystemExit(f"missing {required} directory: {root}")
+          PY
+
       - name: Compile trusted runtime and extensions
         run: |
           python3 -m py_compile \
@@ -36,14 +61,11 @@ jobs:
             .github/scripts/sop_readme_dashboard.py \
             .github/scripts/sop_skill_cleanup.py
 
-      - name: Run Coordinator V2.0 release tests
-        run: python3 -m unittest discover -s ai-sop-coordinator-skill-v2.0.0/tests -p 'test_*.py'
+      - name: Run Coordinator V2.1 release tests
+        run: python3 -m unittest discover -s ai-sop-coordinator-skill-v2.1.0/tests -p 'test_*.py'
 
-      - name: Run Member V2.0 release tests
-        run: python3 -m unittest discover -s ai-sop-member-skill-v2.0.0/tests -p 'test_*.py'
-
-      - name: Run Member 1.8.1 compatibility tests
-        run: python3 -m unittest discover -s ai-sop-member-skill-v1.8.1/tests -p 'test_*.py'
+      - name: Run Member V2.1 release tests
+        run: python3 -m unittest discover -s ai-sop-member-skill-v2.1.0/tests -p 'test_*.py'
 
       - name: Run repository extension tests
         run: |

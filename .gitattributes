@@ -9,10 +9,8 @@
 
 # Stable release packages are vendored byte-for-byte.
 /ai-sop-coordinator-skill-v1.8.4/** -text
-/ai-sop-coordinator-skill-v2.0.0/** -text
-/ai-sop-member-skill-v1.8.0/** -text
-/ai-sop-member-skill-v1.8.1/** -text
-/ai-sop-member-skill-v2.0.0/** -text
+/ai-sop-coordinator-skill-v2.1.0/** -text
+/ai-sop-member-skill-v2.1.0/** -text
 
 # Runtime-lock hashes bind these exact trusted bytes on every platform.
 /.github/scripts/sop_coordinator_cli.py -text

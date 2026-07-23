@@ -44,7 +44,7 @@ python .github/scripts/sop_coordinator_cli.py init-project . `
 
 只有完成以下检查后，才能把 `.github/sop-templates/workflows/` 中的模板复制到 `.github/workflows/`：
 
-1. 新项目状态可由 Coordinator 1.8.4 正常读取。
+1. 新项目状态可由统一 Coordinator 包内的 1.8.5 预开发运行时正常读取。
 2. 成员和分支已登记且无重复。
 3. 已刷新新项目状态，并用预装的 `sop_readme_dashboard.py` 生成新项目投影。
 4. 已从示例创建新的 `sop/dashboard-policy.yaml` 和 `sop/notification-config.yaml`。
@@ -56,7 +56,7 @@ python .github/scripts/sop_coordinator_cli.py init-project . `
 
 审核通过后，在同一受审提交中把 `.github/sop-system.json` 的 `lifecycle` 改为 `active`，将相应 capability 切换为 `true`。
 
-本仓库不使用 Coordinator 1.8.4 的旧 `install-dashboard` 安装器：目标路径已预装受信任运行时，而且旧安装器会要求 `--force` 并把发行包内未加 lifecycle guard 的旧工作流覆盖回来。看板首次生成应直接运行：
+本仓库不使用兼容运行时自带的 `install-dashboard` 安装器：目标路径已预装受信任运行时，而且该安装器会要求 `--force` 并把发行包内未加 lifecycle guard 的旧工作流覆盖回来。看板首次生成应直接运行：
 
 ```powershell
 python .github/scripts/sop_coordinator_cli.py refresh-project-state . --remote origin --validate-remote --member-cli .github/scripts/sop_member_cli.py

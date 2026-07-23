@@ -1,0 +1,68 @@
+{
+  "manifest_schema_version": "2.1",
+  "package_name": "ai-sop-member-skill",
+  "package_version": "2.1.0",
+  "release_status": "stable",
+  "build_id": "member-package-2.1.0-unified-runtimes-v1",
+  "skill_name": "ai-sop-member",
+  "skill_path": "ai-sop-member",
+  "protocol_version": "1.0",
+  "project_schema_version": "2.0",
+  "source_sop": "AI协同软件开发统一SOP_V2.0.md",
+  "integrated_feature_source": "Unified Member distribution with exact A-C, D-E, and legacy predevelopment runtime identities",
+  "documentation": "USAGE.zh-CN.md",
+  "distribution_role": "member-only",
+  "runtime_releases": {
+    "predevelopment": {
+      "skill_version": "1.8.1",
+      "build_id": "member-cli-1.8.1-assignment-acceptance-v1",
+      "protocol_version": "1.0",
+      "project_schema_version": "1.5",
+      "cli_path": "ai-sop-member/scripts/member_cli.py",
+      "protocol_path": "ai-sop-member/assets/protocol-version.yaml",
+      "stage_ids": ["A", "B", "C"],
+      "release_status": "stable",
+      "task_scope": "A-C/G1-G3",
+      "status": "current"
+    },
+    "development_delivery": {
+      "skill_version": "2.0.0",
+      "build_id": "member-dev-cli-2.0.0-v1",
+      "protocol_version": "1.0",
+      "project_schema_version": "2.0",
+      "cli_path": "ai-sop-member/scripts/development_cli.py",
+      "protocol_path": "ai-sop-member/assets/development-protocol-version.yaml",
+      "stage_ids": ["D", "E"],
+      "release_status": "stable",
+      "task_scope": "D-E/G4-G5",
+      "status": "current"
+    },
+    "legacy_predevelopment": {
+      "skill_version": "1.8.0",
+      "build_id": "member-cli-1.8.0-ai-dialogue-exact-release-v1",
+      "protocol_version": "1.0",
+      "project_schema_version": "1.5",
+      "cli_path": "ai-sop-member/scripts/member_cli_1_8_0.py",
+      "protocol_path": "ai-sop-member/assets/legacy-protocol-version.yaml",
+      "stage_ids": ["A", "B", "C"],
+      "release_status": "legacy",
+      "task_scope": "legacy A-C assignments bound to Member 1.8.0",
+      "status": "compatibility-only"
+    }
+  },
+  "runtime": {
+    "python_minimum": "3.10",
+    "external_python_dependencies": [],
+    "coordination_store": "member evidence branch plus task-scoped code branch in a shared private Git repository",
+    "predevelopment_cli": "ai-sop-member/scripts/member_cli.py (runtime identity 1.8.1)",
+    "development_cli": "ai-sop-member/scripts/development_cli.py (runtime identity 2.0.0)",
+    "legacy_predevelopment_cli": "ai-sop-member/scripts/member_cli_1_8_0.py (runtime identity 1.8.0; compatibility only)",
+    "automation_scope": "A-C compatibility plus deterministic D-E assignment, checks, commit-bound owner confirmation, scope validation, and submission"
+  },
+  "companion_package": {
+    "name": "ai-sop-coordinator-skill",
+    "minimum_version": "2.1.0",
+    "installation_required_on_member": false,
+    "task_contract_source": "matching coordinator-managed Git repository"
+  }
+}

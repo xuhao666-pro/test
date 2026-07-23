@@ -6,21 +6,20 @@
 
 ## 已安装能力
 
-- A–C / G1–G3：Coordinator 1.8.4 与 Member 1.8.1 兼容运行时。
-- D–E / G4–G5：Coordinator 与 Member V2.0 发行能力，当前保持禁用。
+- A–C / G1–G3：Coordinator 2.1 统一包内的 1.8.5 运行时与 Member 2.1 统一包内的 1.8.1 运行时。
+- 历史 A–C 校验：Member 2.1 统一包继续携带精确的 1.8.0 legacy 运行时，不再依赖单独的 1.8.0/1.8.1 根发行目录。
+- D–E / G4–G5：Coordinator 与 Member 2.1 统一包内的 2.0.0 运行时，当前保持禁用。
 - 状态看板、GitHub Issue、钉钉提醒、操作看板和 Skill 清理：源码与工作流模板已就绪，项目初始化后再启用。
 - 初始唯一启用的 GitHub Actions 是只读系统校验，不读取 Secrets，也不会发送通知或改写状态。
 
 ## 目录说明
 
-- `ai-sop-coordinator-skill-v2.0.0/`：完整 Coordinator V2.0 稳定发行包。
-- `ai-sop-coordinator-skill-v1.8.4/`：V2.0 回归链保留的 A–C 原始发行包。
-- `ai-sop-member-skill-v2.0.0/`：完整 Member V2.0 稳定发行包。
-- `ai-sop-member-skill-v1.8.1/`：A–C 初始化与远端校验所需的兼容发行包。
-- `ai-sop-member-skill-v1.8.0/`：Member 1.8.1 回归链所需的前序兼容发行包。
+- `ai-sop-coordinator-skill-v2.1.0/`：当前 Coordinator 统一稳定发行包，声明 A–C 与 D–E 两套精确运行时。
+- `ai-sop-coordinator-skill-v1.8.4/`：只用于发行谱系与历史审计的 A–C 原始发行包，不作为当前 runtime lock 来源。
+- `ai-sop-member-skill-v2.1.0/`：唯一正式 Member 发行包，同时声明 1.8.0 legacy、1.8.1 A–C 与 2.0.0 D–E 三套精确运行时。
 - `.github/scripts/`：项目启用后使用的受信任运行时与自动化扩展。
 - `.github/sop-templates/`：未激活的工作流和配置模板。
-- `.github/sop-runtime-lock.json`：四个当前运行时及一个 legacy 校验器的版本、build ID 与 SHA-256 锁。
+- `.github/sop-runtime-lock.json`：四个当前运行时及一个 legacy 运行时的版本、build ID、统一包来源与 SHA-256 锁。
 - [启动说明](.github/SOP-BOOTSTRAP.md) 与 [开发交付 SOP](docs/development-sop.md)。
 
 ## 启动全新项目

@@ -1,0 +1,57 @@
+{
+  "validation_schema_version": "2.1",
+  "package_name": "ai-sop-member-skill",
+  "package_version": "2.1.0",
+  "package_build_id": "member-package-2.1.0-unified-runtimes-v1",
+  "validated_at": "2026-07-23",
+  "results": [
+    {
+      "check": "skill-creator quick_validate with UTF-8 mode",
+      "status": "passed"
+    },
+    {
+      "check": "Member 1.8.0, 1.8.1, and 2.0.0 CLI syntax compilation",
+      "status": "passed"
+    },
+    {
+      "check": "Manifest schema 2.1 separates package identity from three exact runtime identities",
+      "status": "passed"
+    },
+    {
+      "check": "Every runtime manifest entry matches its CLI SKILL_VERSION, CLI BUILD_ID, and protocol asset",
+      "status": "passed"
+    },
+    {
+      "check": "Member 1.8.1 task validation accepts ai-sop-member-skill-v2.1.0 as its package_path without changing runtime identity",
+      "status": "passed"
+    },
+    {
+      "check": "Embedded Member 1.8.0 runtime validates exact legacy assignments without referencing an older root package",
+      "status": "passed"
+    },
+    {
+      "check": "Existing Member 1.8.1 assignment acceptance and predevelopment behavior remain preserved",
+      "status": "passed"
+    },
+    {
+      "check": "Existing Member 2.0.0 development acceptance, confirmation, scope, stale detection, and submission behavior remain preserved",
+      "status": "passed"
+    },
+    {
+      "check": "Version-preflight documentation selects exactly one runtime and never substitutes the package version for a task runtime",
+      "status": "passed"
+    },
+    {
+      "check": "V2.1.0 independent regression suite: 20 tests, zero failures and zero errors",
+      "status": "passed"
+    }
+  ],
+  "known_boundaries": [
+    "Package version 2.1.0 is a distribution identity and never satisfies a task that requires runtime 1.8.0, 1.8.1, or 2.0.0 by itself.",
+    "A-C tasks bind exact runtime and package provenance in the assignment; the current D-E 2.0 task contract binds runtime name/version/build while repository runtime lock and manifest protect package provenance.",
+    "The legacy_predevelopment runtime is compatibility-only and must not be selected for new 1.8.1 tasks.",
+    "Version preflight only reminds and blocks; it never silently installs, upgrades, downgrades, or globally overwrites the local Skill.",
+    "Member submission confirmation has gate_effect none and never authorizes Gate approval, merge, release, or production action.",
+    "Windows validation of UTF-8 Chinese SKILL.md requires Python UTF-8 mode, for example PYTHONUTF8=1."
+  ]
+}

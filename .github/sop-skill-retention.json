@@ -5,14 +5,12 @@
     ".github/sop-runtime-lock.json"
   ],
   "retain_latest_stable": {
-    "coordinator": 2,
-    "member": 3
+    "coordinator": 1,
+    "member": 1
   },
   "pinned_packages": [
-    "ai-sop-coordinator-skill-v2.0.0",
+    "ai-sop-coordinator-skill-v2.1.0",
     "ai-sop-coordinator-skill-v1.8.4",
-    "ai-sop-member-skill-v2.0.0",
-    "ai-sop-member-skill-v1.8.1",
-    "ai-sop-member-skill-v1.8.0"
+    "ai-sop-member-skill-v2.1.0"
   ]
 }

@@ -1,0 +1,17 @@
+{
+  "artifact_type": "participation-matrix",
+  "schema_version": "1.0",
+  "stage_id": "[[FILL]]",
+  "collaboration_model": "[[FILL]]",
+  "rounds": {},
+  "stage_summary": {
+    "round_count": 0,
+    "incomplete_rounds": [],
+    "has_recorded_exceptions": false
+  },
+  "gate_confirmation": {
+    "policy": "[[FILL]]",
+    "approved_member_ids": []
+  },
+  "updated_at": null
+}

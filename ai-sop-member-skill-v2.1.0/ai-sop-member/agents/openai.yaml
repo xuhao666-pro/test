@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI SOP Member"
+  short_description: "Execute scoped SOP work from requirements through delivery"
+  default_prompt: "Use $ai-sop-member from the V2.1 unified package, select the exact 1.8.0, 1.8.1, or 2.0.0 task runtime before reading task content, preserve assignment acceptance and human authority, and stop at review or production gates."

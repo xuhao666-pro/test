@@ -16,7 +16,6 @@ from typing import Any
 
 PACKAGE_RE = re.compile(r"^ai-sop-(coordinator|member)-skill-v(\d+(?:\.\d+)*)$")
 PACKAGE_TOKEN_RE = re.compile(r"ai-sop-(?:coordinator|member)-skill-v\d+(?:\.\d+)*")
-SKILL_VERSION_RE = re.compile(r'^SKILL_VERSION\s*=\s*["\']([^"\']+)["\']', re.MULTILINE)
 TEXT_SUFFIXES = {".json", ".yaml", ".yml", ".md", ".txt"}
 
 
@@ -81,7 +80,8 @@ def referenced_package_paths(root: Path, reference_roots: list[str]) -> dict[str
         base = (root / relative_root).resolve()
         if not base.exists() or not base.is_relative_to(root.resolve()):
             continue
-        for path in base.rglob("*"):
+        paths = [base] if base.is_file() else base.rglob("*")
+        for path in paths:
             if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
                 continue
             try:
@@ -96,18 +96,38 @@ def referenced_package_paths(root: Path, reference_roots: list[str]) -> dict[str
 
 
 def runtime_package_paths(root: Path) -> dict[str, list[str]]:
+    """Return package roots named by trusted runtime-lock source records.
+
+    A runtime's own ``SKILL_VERSION`` is deliberately not used to reconstruct a
+    package directory name.  A unified package may expose several exact runtime
+    identities, so package ownership comes from the lock's repository-relative
+    ``source`` path instead.
+    """
     result: dict[str, list[str]] = {}
-    scripts = [root / ".github/scripts/sop_coordinator_cli.py"]
-    scripts.extend(sorted((root / ".github/scripts").glob("sop_member_cli*.py")))
-    for path in scripts:
-        if not path.is_file():
-            continue
-        match = SKILL_VERSION_RE.search(path.read_text(encoding="utf-8"))
-        if not match:
-            continue
-        role = "coordinator" if "coordinator" in path.name else "member"
-        package = f"ai-sop-{role}-skill-v{match.group(1)}"
-        result.setdefault(package, []).append(path.relative_to(root).as_posix())
+    lock_path = root / ".github" / "sop-runtime-lock.json"
+    if not lock_path.is_file():
+        return result
+    lock = load_json(lock_path)
+    runtimes = lock.get("runtimes")
+    if not isinstance(runtimes, dict):
+        raise CleanupError("Runtime lock must contain a runtimes object")
+    for runtime_name, record in runtimes.items():
+        if not isinstance(record, dict):
+            raise CleanupError(f"Runtime lock record must be an object: {runtime_name}")
+        source = str(record.get("source", "")).replace("\\", "/").strip()
+        source_path = Path(source)
+        if (
+            not source
+            or source_path.is_absolute()
+            or ".." in source_path.parts
+            or not source_path.parts
+            or not PACKAGE_RE.fullmatch(source_path.parts[0])
+        ):
+            raise CleanupError(f"Runtime lock source is not package-owned: {runtime_name}")
+        package = source_path.parts[0]
+        result.setdefault(package, []).append(
+            f".github/sop-runtime-lock.json#runtimes.{runtime_name}"
+        )
     return {key: sorted(set(value)) for key, value in result.items()}
 
 
