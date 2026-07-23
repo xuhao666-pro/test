@@ -1,4 +1,0 @@
-interface:
-  display_name: "AI SOP Coordinator"
-  short_description: "Coordinate SOP work and human-readable Gate reviews"
-  default_prompt: "Use $ai-sop-coordinator V1.8.4 to prepare and validate human-readable Gate review material, preserve exact member evidence, and keep existing Gate authority and merge controls unchanged."

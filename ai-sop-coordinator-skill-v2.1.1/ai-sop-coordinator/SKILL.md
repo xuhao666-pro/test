@@ -17,7 +17,7 @@ When task and submission reminders are requested, read [references/github-issue-
 
 # AI SOP Coordinator
 
-> V2.1.0 稳定版。A—C 与 G1—G3 由内置 V1.8.5 CLI 执行；开发任务派发、独立审查、main 集成验证、G4、灰度记录与 G5 继续由 V2.0 `development_cli.py` 执行。发行包版本与任务运行时版本分层记录，不要求数值相同。
+> V2.1.1 稳定版。A—C 与 G1—G3 由内置 V1.8.5 CLI 执行；开发任务派发、独立审查、main 集成验证、G4、灰度记录与 G5 继续由 V2.0 `development_cli.py` 执行。发行包版本与任务运行时版本分层记录，不要求数值相同。
 
 在协调员工作区管理分布式 SOP。通过共享 Git 仓库分发任务、关闭独立窗口、组织公开评审、汇总差异、准备人工 Gate，并冻结正式基线。
 

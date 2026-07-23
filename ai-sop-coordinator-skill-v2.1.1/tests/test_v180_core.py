@@ -106,9 +106,9 @@ class V180CoordinatorTests(unittest.TestCase):
         self.assertEqual(cli.SKILL_VERSION, "1.8.5")
         self.assertEqual(cli.BUILD_ID, "coordinator-cli-1.8.5-unified-member-package-v1")
         self.assertEqual(manifest["manifest_schema_version"], "2.1")
-        self.assertEqual(manifest["package_version"], "2.1.0")
+        self.assertEqual(manifest["package_version"], "2.1.1")
         self.assertEqual(
-            manifest["build_id"], "coordinator-package-2.1.0-unified-runtimes-v1"
+            manifest["build_id"], "coordinator-package-2.1.1-unified-runtimes-v1"
         )
         self.assertEqual(manifest["release_status"], "stable")
         self.assertEqual(protocol["skill_version"], "1.8.5")

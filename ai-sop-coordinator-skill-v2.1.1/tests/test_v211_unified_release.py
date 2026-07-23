@@ -3,27 +3,29 @@ import pathlib
 import unittest
 
 
-REPO = pathlib.Path(__file__).parents[2]
-OLD = REPO / "ai-sop-coordinator-skill-v1.8.4"
-NEW = pathlib.Path(__file__).parents[1]
+PACKAGE = pathlib.Path(__file__).parents[1]
 
 
-class AdditiveReleaseTests(unittest.TestCase):
-    def test_original_release_is_still_present(self):
-        self.assertTrue(OLD.is_dir())
-        self.assertTrue(NEW.is_dir())
+class UnifiedReleaseTests(unittest.TestCase):
+    def test_release_is_self_contained(self):
+        manifest = json.loads(
+            (PACKAGE / "package-manifest.json").read_text(encoding="utf-8")
+        )
+        for runtime in manifest["runtime_releases"].values():
+            self.assertTrue((PACKAGE / runtime["cli_path"]).is_file())
+            self.assertTrue((PACKAGE / runtime["protocol_path"]).is_file())
 
-    def test_release_metadata_is_v210_and_declares_member_runtime_requirements(self):
-        manifest = json.loads((NEW / "package-manifest.json").read_text(encoding="utf-8"))
+    def test_release_metadata_is_v211_and_declares_member_runtime_requirements(self):
+        manifest = json.loads((PACKAGE / "package-manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["manifest_schema_version"], "2.1")
-        self.assertEqual(manifest["package_version"], "2.1.0")
+        self.assertEqual(manifest["package_version"], "2.1.1")
         requirements = manifest["companion_package"]["runtime_requirements"]
         self.assertEqual(requirements["predevelopment"]["skill_version"], "1.8.1")
         self.assertEqual(requirements["development_delivery"]["skill_version"], "2.0.0")
 
     def test_sidecar_workflow_has_least_privilege_and_no_issue_command_trigger(self):
         workflow = (
-            NEW
+            PACKAGE
             / "ai-sop-coordinator"
             / "assets"
             / "github-notifications"
@@ -37,7 +39,7 @@ class AdditiveReleaseTests(unittest.TestCase):
 
     def test_reference_declares_reminder_only_boundary(self):
         reference = (
-            NEW
+            PACKAGE
             / "ai-sop-coordinator"
             / "references"
             / "github-issue-notifications.md"

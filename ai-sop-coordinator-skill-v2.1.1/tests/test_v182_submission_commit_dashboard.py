@@ -38,7 +38,7 @@ class SubmissionCommitValidationTests(unittest.TestCase):
             )
         )
         self.assertEqual(cli.SKILL_VERSION, "1.8.5")
-        self.assertEqual(manifest["package_version"], "2.1.0")
+        self.assertEqual(manifest["package_version"], "2.1.1")
         self.assertEqual(cli.BUILD_ID, protocol["build_id"])
 
     def test_submission_commit_must_be_reachable_from_registered_ref(self):

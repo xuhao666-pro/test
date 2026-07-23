@@ -156,6 +156,7 @@ class SkillCleanupTests(unittest.TestCase):
                 ("coordinator", "1.8.4"),
                 ("coordinator", "2.0.0"),
                 ("coordinator", "2.1.0"),
+                ("coordinator", "2.1.1"),
                 ("member", "1.8.0"),
                 ("member", "1.8.1"),
                 ("member", "2.0.0"),
@@ -172,11 +173,11 @@ class SkillCleanupTests(unittest.TestCase):
             (github / "sop-runtime-lock.json").write_text(json.dumps({
                 "runtimes": {
                     "coordinator_ac": {"source": (
-                        "ai-sop-coordinator-skill-v2.1.0/"
+                        "ai-sop-coordinator-skill-v2.1.1/"
                         "ai-sop-coordinator/scripts/coordinator_cli.py"
                     )},
                     "coordinator_de": {"source": (
-                        "ai-sop-coordinator-skill-v2.1.0/"
+                        "ai-sop-coordinator-skill-v2.1.1/"
                         "ai-sop-coordinator/scripts/development_cli.py"
                     )},
                     "member_legacy": {"source": (
@@ -198,8 +199,7 @@ class SkillCleanupTests(unittest.TestCase):
                 "reference_roots": [".github/sop-runtime-lock.json"],
                 "retain_latest_stable": {"coordinator": 1, "member": 1},
                 "pinned_packages": [
-                    "ai-sop-coordinator-skill-v2.1.0",
-                    "ai-sop-coordinator-skill-v1.8.4",
+                    "ai-sop-coordinator-skill-v2.1.1",
                     "ai-sop-member-skill-v2.1.0",
                 ],
             }), encoding="utf-8")
@@ -214,7 +214,9 @@ class SkillCleanupTests(unittest.TestCase):
             self.assertEqual(
                 [item["path"] for item in plan["candidates"]],
                 [
+                    "ai-sop-coordinator-skill-v1.8.4",
                     "ai-sop-coordinator-skill-v2.0.0",
+                    "ai-sop-coordinator-skill-v2.1.0",
                     "ai-sop-member-skill-v1.8.0",
                     "ai-sop-member-skill-v1.8.1",
                     "ai-sop-member-skill-v2.0.0",

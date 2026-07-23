@@ -1,8 +1,8 @@
 # Dashboard Design QA
 
-## V2.1.0 lifecycle, unified runtime discovery, and automation QA
+## V2.1.1 lifecycle, unified runtime discovery, and automation QA
 
-This stable release advances the A-C coordinator runtime to V1.8.5 and discovers the exact A-C Member V1.8.1 runtime inside one unified Member V2.1 package. It preserves deterministic D/E task dispatch, task-scoped code branches, commit confirmation, independent review, main integration, G4/G5, and rollout controls. Rollback and incident authority boundaries remain human-controlled as documented.
+This packaging-only patch preserves the A-C Coordinator V1.8.5 and D/E Coordinator V2.0.0 runtime bytes while removing the release test dependency on legacy root package directories. Historical releases remain recoverable from immutable Git tags and cleanup audits. It continues to discover the exact A-C Member V1.8.1 runtime inside one unified Member V2.1 package and preserves deterministic D/E task dispatch, task-scoped code branches, commit confirmation, independent review, main integration, G4/G5, rollout controls, and human rollback and incident authority.
 
 - Package identity is validated separately from task runtime identity.
 - Unified runtime CLI and protocol paths must remain inside their package directory.

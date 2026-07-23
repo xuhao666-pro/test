@@ -29,7 +29,7 @@ class AuthoritativeRemoteRoundTests(unittest.TestCase):
             )
         )
         self.assertEqual(cli.SKILL_VERSION, "1.8.5")
-        self.assertEqual(manifest["package_version"], "2.1.0")
+        self.assertEqual(manifest["package_version"], "2.1.1")
         self.assertEqual(protocol["skill_version"], "1.8.5")
         self.assertEqual(cli.BUILD_ID, protocol["build_id"])
 

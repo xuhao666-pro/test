@@ -10,7 +10,7 @@ SKILL = ROOT / "ai-sop-coordinator"
 class DevelopmentCoordinationContentTests(unittest.TestCase):
     def test_stable_manifest_declares_development_automation(self):
         manifest = json.loads((ROOT / "package-manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["package_version"], "2.1.0")
+        self.assertEqual(manifest["package_version"], "2.1.1")
         self.assertEqual(manifest["release_status"], "stable")
         self.assertIn("deterministic development", manifest["runtime"]["automation_scope"])
         self.assertTrue((SKILL / "scripts" / "development_cli.py").is_file())

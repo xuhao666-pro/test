@@ -1,6 +1,6 @@
 {
   "package_name": "ai-sop-coordinator-skill",
-  "package_version": "2.1.0",
+  "package_version": "2.1.1",
   "validated_at": "2026-07-23",
   "results": [
     {"check": "skill-creator quick_validate", "status": "passed"},
@@ -41,7 +41,7 @@
     {"check": "Deterministic validation enforces member coverage, artifact coverage, repository-relative links, citations, comparison identity, and complete content", "status": "passed"},
     {"check": "prepare-gate binds the normalized document hash and source fingerprint; stale material is rejected before approval", "status": "passed"},
     {"check": "The exact reviewed Markdown is copied beside gate-decision.yaml in the frozen baseline", "status": "passed"},
-    {"check": "Coordinator V2.1 package regression suite: 51 tests, zero failures and zero errors", "status": "passed"},
+    {"check": "Coordinator V2.1.1 package regression suite: 51 tests, zero failures and zero errors", "status": "passed"},
     {"check": "Unified Member V2.1 discovery validates package-contained CLI and protocol paths and selects by package version", "status": "passed"},
     {"check": "Project initialization binds Member 1.8.1 runtime identity to the unified Member 2.1 package and exact repository commit", "status": "passed"},
     {"check": "Confirmed unified Member releases reject incomplete package identity while preserving legacy flat release records", "status": "passed"},
@@ -49,7 +49,8 @@
     {"check": "Development coordination separates A-C evidence branches from D task-scoped code branches", "status": "passed"},
     {"check": "Development submission confirmation, independent review, CI, PR, and main reachability remain separate authority chains", "status": "passed"},
     {"check": "G4 and G5 content contracts preserve release, rollout, rollback, incident, and closure human authority", "status": "passed"},
-    {"check": "V2.0 development CLI task preview confirmation, self-review rejection, exact-commit review, main ancestry, G4, rollout, and G5 tests", "status": "passed"}
+    {"check": "V2.0 development CLI task preview confirmation, self-review rejection, exact-commit review, main ancestry, G4, rollout, and G5 tests", "status": "passed"},
+    {"check": "V2.1.1 package tests are self-contained and do not require legacy root release directories", "status": "passed"}
   ],
   "known_boundaries": [
     "The coordinator must explicitly decide whether requirement analysis requires adaptive Grill before preview confirmation.",

@@ -32,10 +32,10 @@ class ReleaseIdentityTests(unittest.TestCase):
     def test_release_identity_and_member_binding(self):
         manifest = json.loads((PACKAGE / "package-manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["manifest_schema_version"], "2.1")
-        self.assertEqual(manifest["package_version"], "2.1.0")
+        self.assertEqual(manifest["package_version"], "2.1.1")
         self.assertEqual(manifest["release_status"], "stable")
         self.assertEqual(
-            manifest["build_id"], "coordinator-package-2.1.0-unified-runtimes-v1"
+            manifest["build_id"], "coordinator-package-2.1.1-unified-runtimes-v1"
         )
         runtimes = manifest["runtime_releases"]
         self.assertEqual(runtimes["predevelopment"]["skill_version"], "1.8.5")

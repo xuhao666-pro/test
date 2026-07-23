@@ -6,7 +6,7 @@
       "version": "1.8.5",
       "build_id": "coordinator-cli-1.8.5-unified-member-package-v1",
       "sha256": "1d3daae006359a0397d401f2e77934c19d009e905d3af31bf30810ad726c861c",
-      "source": "ai-sop-coordinator-skill-v2.1.0/ai-sop-coordinator/scripts/coordinator_cli.py"
+      "source": "ai-sop-coordinator-skill-v2.1.1/ai-sop-coordinator/scripts/coordinator_cli.py"
     },
     "predevelopment_member": {
       "path": ".github/scripts/sop_member_cli.py",
@@ -20,14 +20,14 @@
       "version": "1.8.0",
       "build_id": "member-cli-1.8.0-ai-dialogue-exact-release-v1",
       "sha256": "0d76dfb1cc8155788ef091ac40b3caf506b634de5bf6b1096f678931f6ae3ab6",
-      "source": "ai-sop-coordinator-skill-v2.1.0/ai-sop-coordinator/assets/remote-validator/member_cli_1_8_0.py"
+      "source": "ai-sop-coordinator-skill-v2.1.1/ai-sop-coordinator/assets/remote-validator/member_cli_1_8_0.py"
     },
     "development_coordinator": {
       "path": ".github/scripts/sop_development_cli.py",
       "version": "2.0.0",
       "build_id": "coordinator-dev-cli-2.0.0-v1",
       "sha256": "2ad26a33e8670df5059e9d09deed11a8846b99e8beaca01a2d3f1b8591d639f3",
-      "source": "ai-sop-coordinator-skill-v2.1.0/ai-sop-coordinator/scripts/development_cli.py",
+      "source": "ai-sop-coordinator-skill-v2.1.1/ai-sop-coordinator/scripts/development_cli.py",
       "enabled": false
     },
     "development_member": {

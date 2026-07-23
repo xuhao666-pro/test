@@ -9,8 +9,7 @@
     "member": 1
   },
   "pinned_packages": [
-    "ai-sop-coordinator-skill-v2.1.0",
-    "ai-sop-coordinator-skill-v1.8.4",
+    "ai-sop-coordinator-skill-v2.1.1",
     "ai-sop-member-skill-v2.1.0"
   ]
 }
