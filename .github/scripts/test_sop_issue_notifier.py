@@ -85,17 +85,18 @@ class IssueNotifierTests(unittest.TestCase):
         self.assertEqual(first["marker"], second["marker"])
 
     def test_delivery_reports_whether_reminder_was_new(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
+        repository_root = pathlib.Path.cwd().resolve()
+        with tempfile.TemporaryDirectory(dir=repository_root) as directory:
+            root = pathlib.Path(directory).resolve()
             assignment_path = root / "assignment.yaml"
             config_path = root / "config.yaml"
             assignment_path.write_text(json.dumps(ASSIGNMENT), encoding="utf-8")
             config_path.write_text(json.dumps(CONFIG), encoding="utf-8")
             args = Namespace(
                 event="task-reminder",
-                assignment=str(assignment_path),
+                assignment=assignment_path.relative_to(repository_root).as_posix(),
                 commit="c" * 40,
-                config=str(config_path),
+                config=config_path.relative_to(repository_root).as_posix(),
                 run_url="https://github.example/actions/6",
                 detail="status=missing",
                 identity="2026-07-20",
