@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "status": "staged",
+  "applied_at": "2026-07-23T03:46:42+00:00",
+  "repository_head_before_apply": "8806fb15eec045d2c43c679b9d1356d0d00aa020",
+  "confirmation_token": "44aba9811207ab4d",
+  "reason": "Archive superseded Coordinator 1.8.4 and 2.1.0 root packages after publishing 2.1.1",
+  "removed_packages": [
+    "ai-sop-coordinator-skill-v1.8.4",
+    "ai-sop-coordinator-skill-v2.1.0"
+  ],
+  "retained_packages": [
+    "ai-sop-coordinator-skill-v2.1.1",
+    "ai-sop-member-skill-v2.1.0"
+  ],
+  "history_preserved_by": "git",
+  "commit_and_push_required": true
+}

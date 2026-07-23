@@ -1,4 +1,0 @@
-interface:
-  display_name: "AI SOP Coordinator"
-  short_description: "Coordinate requirements, development, review, and delivery Gates"
-  default_prompt: "Use $ai-sop-coordinator V2.1 rules to classify the A-E stage, select the exact runtime from the unified Member package, preserve member evidence and authority, coordinate scoped code tasks and reviews, verify main integration, and stop for human G1-G5, production, rollback, or incident decisions."

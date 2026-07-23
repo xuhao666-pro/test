@@ -42,8 +42,6 @@ EXPECTED_RUNTIME_NAMES = {
     "development_member",
 }
 REQUIRED_PACKAGES = {
-    "ai-sop-coordinator-skill-v1.8.4",
-    "ai-sop-coordinator-skill-v2.1.0",
     "ai-sop-coordinator-skill-v2.1.1",
     "ai-sop-member-skill-v2.1.0",
 }
@@ -635,26 +633,6 @@ def validate_packages() -> set[str]:
         if unexpected:
             details.append("unexpected=" + ",".join(unexpected))
         raise ValidationError("installed Skill package set mismatch: " + "; ".join(details))
-
-    legacy_manifest = load_json(
-        ROOT / "ai-sop-coordinator-skill-v1.8.4" / "package-manifest.json"
-    )
-    if (
-        legacy_manifest.get("package_name") != "ai-sop-coordinator-skill"
-        or legacy_manifest.get("package_version") != "1.8.4"
-        or legacy_manifest.get("release_status") != "stable"
-    ):
-        raise ValidationError("Coordinator 1.8.4 lineage package identity mismatch")
-
-    previous_manifest = load_json(
-        ROOT / "ai-sop-coordinator-skill-v2.1.0" / "package-manifest.json"
-    )
-    if (
-        previous_manifest.get("package_name") != "ai-sop-coordinator-skill"
-        or previous_manifest.get("package_version") != "2.1.0"
-        or previous_manifest.get("release_status") != "stable"
-    ):
-        raise ValidationError("Coordinator 2.1.0 lineage package identity mismatch")
 
     trusted_sources: set[str] = set()
     for package_name, expected in UNIFIED_PACKAGE_RUNTIMES.items():

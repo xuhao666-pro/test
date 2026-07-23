@@ -8,8 +8,6 @@
 *.py text eol=lf
 
 # Stable release packages are vendored byte-for-byte.
-/ai-sop-coordinator-skill-v1.8.4/** -text
-/ai-sop-coordinator-skill-v2.1.0/** -text
 /ai-sop-coordinator-skill-v2.1.1/** -text
 /ai-sop-member-skill-v2.1.0/** -text
 
